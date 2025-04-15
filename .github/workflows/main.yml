@@ -1,28 +1,32 @@
-name: Deploy Java Application to EC2 tomcat
+name: Java CI/CD to EC2
 
 on:
   push:
     branches:
-      - main   # Trigger the workflow when code is pushed to the `main` branch
+      - main  # Trigger workflow on push to main branch
 
 jobs:
   build:
     runs-on: ubuntu-latest
     
     steps:
+      # Checkout the code
       - name: Checkout code
         uses: actions/checkout@v4
         
+      # Set up JDK 11
       - name: Set up JDK 11
         uses: actions/setup-java@v1
         with:
-          java-version: 11
-
+          java-version: '11'
+        
+      # Build the Java project using Maven
       - name: Build with Maven
         run: mvn clean package
-
+        
+      # Upload WAR file as an artifact
       - name: Upload WAR file
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v2
         with:
           name: java-app
           path: target/*.war
@@ -32,28 +36,27 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+      # Download the WAR file artifact from the previous step
       - name: Download WAR file
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v2
         with:
           name: java-app
           path: target
-          
+      
+      # Set up SSH key and add the EC2 instance to known_hosts
       - name: Set up SSH key and known_hosts
-        run: |
-         - name: Set up SSH key and known_hosts
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          echo "Adding EC2 to known_hosts..."
           ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
-
+      # Copy the WAR file to the EC2 instance using SCP
       - name: Deploy WAR via SCP
         run: |
           scp -i ~/.ssh/id_rsa target/*.war ec2-user@${{ secrets.SSH_HOST }}:/home/ec2-user/
 
-      - name: Copy WAR file to Tomcat webapps
+      # Copy the WAR file to Tomcat's webapps directory
+      - name: Copy WAR to Tomcat webapps
         run: |
-          ssh -i ~/.ssh/id_rsa ec2-user@${{ secrets.SSH_HOST }} 'sudo cp /home/ec2-user/*.war /opt/tomcat9/webapps/'
-
+          ssh -i ~/.ssh/id_rsa ec2-user@${{ secrets.SSH_HOST }} 'sudo cp /home/ec2-user/*.war /opt/tomcat/webapps/'
