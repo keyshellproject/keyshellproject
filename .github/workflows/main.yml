@@ -20,9 +20,24 @@ jobs:
         with:
           java-version: '11'
 
+      # Cache SonarCloud packages (optional, only if you're using SonarCloud)
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
       # Build the Java project using Maven
       - name: Build with Maven
         run: mvn clean package
+
+      # Run SonarQube scan
+      - name: Run SonarQube Scan
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        run: mvn sonar:sonar -Dsonar.login=$SONAR_TOKEN -Dsonar.host.url=$SONAR_HOST_URL
 
       # Upload WAR file as an artifact
       - name: Upload WAR file
