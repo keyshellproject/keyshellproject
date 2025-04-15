@@ -8,25 +8,25 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
       # Checkout the code
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       # Set up JDK 11
       - name: Set up JDK 11
         uses: actions/setup-java@v1
         with:
           java-version: '11'
-        
+
       # Build the Java project using Maven
       - name: Build with Maven
         run: mvn clean package
-        
+
       # Upload WAR file as an artifact
       - name: Upload WAR file
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: java-app
           path: target/*.war
@@ -34,16 +34,16 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    
+
     steps:
       # Download the WAR file artifact from the previous step
       - name: Download WAR file
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: java-app
           path: target
-      
-      # Set up SSH key and add the EC2 instance to known_hosts
+
+      # Set up SSH key and add EC2 to known_hosts
       - name: Set up SSH key and known_hosts
         run: |
           mkdir -p ~/.ssh
