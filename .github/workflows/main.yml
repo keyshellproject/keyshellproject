@@ -40,11 +40,14 @@ jobs:
           
       - name: Set up SSH key and known_hosts
         run: |
+         - name: Set up SSH key and known_hosts
+        run: |
           mkdir -p ~/.ssh
-          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           echo "Adding EC2 to known_hosts..."
           ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
 
       - name: Deploy WAR via SCP
         run: |
