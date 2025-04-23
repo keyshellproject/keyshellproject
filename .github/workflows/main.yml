@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout the code
+      # Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -51,7 +51,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Download the WAR file artifact from the previous step
+      # Download WAR file artifact
       - name: Download WAR file
         uses: actions/download-artifact@v4
         with:
@@ -66,12 +66,28 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
-      # Copy the WAR file to the EC2 instance using SCP
+      # Deploy WAR file to Nexus
+      - name: Deploy to Nexus
+        env:
+          NEXUS_URL: ${{ secrets.NEXUS_URL }}
+          NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+        run: |
+          mvn deploy:deploy-file \
+            -Durl=${{ secrets.NEXUS_URL }} \
+            -DrepositoryId=nexus-releases \
+            -Dfile=target/*.war \
+            -DgroupId=com.microsoft.webapp.samples \
+            -DartifactId=Stateful-Tracker \
+            -Dversion=${{ github.sha }} \
+            -Dpackaging=war
+
+      # Deploy WAR file to EC2 instance
       - name: Deploy WAR via SCP
         run: |
           scp -i ~/.ssh/id_rsa target/*.war ec2-user@${{ secrets.SSH_HOST }}:/home/ec2-user/
 
-      # Copy the WAR file to Tomcat's webapps directory
+      # Copy WAR to Tomcat webapps directory
       - name: Copy WAR to Tomcat webapps
         run: |
           ssh -i ~/.ssh/id_rsa ec2-user@${{ secrets.SSH_HOST }} 'sudo cp /home/ec2-user/*.war /opt/tomcat/webapps/'
