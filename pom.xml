@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
@@ -8,8 +9,21 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
         <!-- Automatically use Git commit hash as version -->
         <version>${git.commit.id.describe}</version>
+
+        <!-- SonarQube configuration -->
+        <sonar.host.url>${env.SONAR_HOST_URL}</sonar.host.url>
+        <sonar.login>${env.SONAR_TOKEN}</sonar.login>
+
+        <!-- Nexus deployment configuration -->
+        <nexus.url>${env.NEXUS_URL}</nexus.url>
+        <staging.profile.id>${env.NEXUS_STAGING_PROFILE_ID}</staging.profile.id>
+
+        <!-- Java version -->
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
 
     <dependencies>
@@ -32,8 +46,8 @@
     </dependencies>
 
     <build>
-        <sourceDirectory>src</sourceDirectory>
         <plugins>
+            <!-- Compiler plugin to set the Java version -->
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.8.0</version>
@@ -43,6 +57,7 @@
                 </configuration>
             </plugin>
 
+            <!-- WAR Plugin to handle WAR packaging -->
             <plugin>
                 <artifactId>maven-war-plugin</artifactId>
                 <version>3.2.2</version>
@@ -51,7 +66,7 @@
                 </configuration>
             </plugin>
 
-            <!-- Nexus Deploy Plugin -->
+            <!-- Nexus Staging Plugin for deployment to Nexus -->
             <plugin>
                 <groupId>org.sonatype.plugins</groupId>
                 <artifactId>nexus-staging-maven-plugin</artifactId>
@@ -63,7 +78,7 @@
                 </configuration>
             </plugin>
 
-            <!-- Maven Release Plugin for versioning -->
+            <!-- Maven Release Plugin to handle versioning -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-release-plugin</artifactId>
@@ -72,10 +87,22 @@
                     <tagBase>https://github.com/yourrepo/yourproject/releases</tagBase>
                 </configuration>
             </plugin>
+
+            <!-- SonarQube Plugin for code analysis -->
+            <plugin>
+                <groupId>org.sonarsource.scanner.maven</groupId>
+                <artifactId>sonar-maven-plugin</artifactId>
+                <version>4.0.0.4121</version>
+                <configuration>
+                    <sonar.host.url>${sonar.host.url}</sonar.host.url>
+                    <sonar.login>${sonar.login}</sonar.login>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
     <profiles>
+        <!-- Local environment profile -->
         <profile>
             <id>env-local</id>
             <activation>
@@ -93,5 +120,38 @@
                 <cargo.remote.password>admin</cargo.remote.password>
             </properties>
         </profile>
+
+        <!-- Staging environment profile -->
+        <profile>
+            <id>env-staging</id>
+            <activation>
+                <property>
+                    <name>env</name>
+                    <value>staging</value>
+                </property>
+            </activation>
+            <properties>
+                <deploy.env>staging</deploy.env>
+                <cargo.hostname>staging.example.com</cargo.hostname>
+                <cargo.servlet.port>8080</cargo.servlet.port>
+            </properties>
+        </profile>
+
+        <!-- Production environment profile -->
+        <profile>
+            <id>env-prod</id>
+            <activation>
+                <property>
+                    <name>env</name>
+                    <value>prod</value>
+                </property>
+            </activation>
+            <properties>
+                <deploy.env>prod</deploy.env>
+                <cargo.hostname>prod.example.com</cargo.hostname>
+                <cargo.servlet.port>8080</cargo.servlet.port>
+            </properties>
+        </profile>
     </profiles>
+
 </project>
