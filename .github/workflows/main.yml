@@ -61,6 +61,13 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
+                # Debug Nexus credentials (remove after testing!)
+      - name: Debug Nexus credentials (TEMP)
+        run: |
+          echo "Username: ${{ secrets.NEXUS_USERNAME }}"
+          echo "Password: ${{ secrets.NEXUS_PASSWORD }}"
+
+
       - name: Deploy to Nexus
         env:
           NEXUS_URL: ${{ secrets.NEXUS_URL }}
