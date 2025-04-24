@@ -13,13 +13,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Get the current version tag
+      - name: Generate dynamic version
         id: version
         run: |
-          VERSION=$(git describe --tags --abbrev=0)
-          VERSION_NUMBER=$(echo $VERSION | sed 's/v//') # Remove "v" if you are using v1, v2, etc.
-          echo "Current version: $VERSION_NUMBER"
-          echo "::set-output name=version::$VERSION_NUMBER"
+          TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$TAG" ]; then
+            VERSION="v1.0.${{ github.run_number }}"
+          else
+            VERSION=$TAG
+          fi
+          echo "Using version: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Set up JDK 11
         uses: actions/setup-java@v1
@@ -35,6 +39,10 @@ jobs:
 
       - name: Build with Maven
         run: mvn clean package
+
+      - name: Rename WAR file with version
+        run: |
+          mv target/*.war target/Stateful-Tracker-${{ steps.version.outputs.version }}.war
 
       - name: List target directory
         run: ls -l target
@@ -69,11 +77,11 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
-      # Debug Nexus credentials (remove after testing!)
-      - name: Debug Nexus credentials (TEMP)
+      - name: Generate version for deployment
+        id: version
         run: |
-          echo "Username: ${{ secrets.NEXUS_USERNAME }}"
-          echo "Password: ${{ secrets.NEXUS_PASSWORD }}"
+          VERSION="v1.0.${{ github.run_number }}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Deploy to Nexus
         env:
@@ -93,10 +101,10 @@ jobs:
             -Dusername=${{ secrets.NEXUS_USERNAME }} \
             -Dpassword=${{ secrets.NEXUS_PASSWORD }}
 
-      - name: Deploy WAR via SCP
+      - name: Deploy WAR via SCP to EC2
         run: |
-          scp -i ~/.ssh/id_rsa target/*.war ec2-user@${{ secrets.SSH_HOST }}:/home/ec2-user/
+          scp -i ~/.ssh/id_rsa target/Stateful-Tracker-${{ steps.version.outputs.version }}.war ec2-user@${{ secrets.SSH_HOST }}:/home/ec2-user/
 
       - name: Copy WAR to Tomcat webapps
         run: |
-          ssh -i ~/.ssh/id_rsa ec2-user@${{ secrets.SSH_HOST }} 'sudo cp /home/ec2-user/*.war /opt/tomcat/webapps/'
+          ssh -i ~/.ssh/id_rsa ec2-user@${{ secrets.SSH_HOST }} 'sudo cp /home/ec2-user/Stateful-Tracker-${{ steps.version.outputs.version }}.war /opt/tomcat/webapps/'
