@@ -20,8 +20,8 @@ jobs:
         with:
           java-version: '11'
 
-      # Cache SonarCloud packages (optional, only if you're using SonarCloud)
-      - name: Cache SonarCloud packages
+      # Cache Sonar packages (optional)
+      - name: Cache Sonar packages
         uses: actions/cache@v3
         with:
           path: ~/.sonar/cache
@@ -31,8 +31,12 @@ jobs:
       # Build the Java project using Maven
       - name: Build with Maven
         run: mvn clean package
+        working-directory: ./keyshellproject
+
+      # List target directory to confirm .war creation
       - name: List target directory
         run: ls -l target
+        working-directory: ./keyshellproject
 
       # Run SonarQube scan
       - name: Run SonarQube Scan
@@ -40,13 +44,14 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         run: mvn sonar:sonar -Dsonar.login=$SONAR_TOKEN -Dsonar.host.url=$SONAR_HOST_URL
+        working-directory: ./keyshellproject
 
       # Upload WAR file as an artifact
       - name: Upload WAR file
         uses: actions/upload-artifact@v4
         with:
           name: java-app
-          path: target/*.war
+          path: keyshellproject/target/*.war
 
   deploy:
     needs: build
@@ -60,7 +65,7 @@ jobs:
           name: java-app
           path: target
 
-      # Set up SSH key and add EC2 to known_hosts
+      # Set up SSH key and known_hosts
       - name: Set up SSH key and known_hosts
         run: |
           mkdir -p ~/.ssh
@@ -68,27 +73,12 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
-      # Deploy WAR file to Nexus (using the Maven deploy goal)
+      # Deploy WAR file to Nexus
       - name: Deploy to Nexus
         env:
           NEXUS_URL: ${{ secrets.NEXUS_URL }}
           NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
           NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
         run: |
-            mvn deploy -DaltDeploymentRepository=nexus-releases::default::${{ secrets.NEXUS_URL }} \
-            -DserverId=nexus-releases \
-            -Dfile=target/Stateful-Tracker-1.0.0-SNAPSHOT.war \
-            -DgroupId=com.microsoft.webapp.samples \
-            -DartifactId=Stateful-Tracker \
-            -Dversion=${{ github.sha }} \
-            -Dpackaging=war
-
-      # Deploy WAR file to EC2 instance via SCP
-      - name: Deploy WAR via SCP
-        run: |
-          scp -i ~/.ssh/id_rsa target/*.war ec2-user@${{ secrets.SSH_HOST }}:/home/ec2-user/
-
-      # Copy WAR to Tomcat webapps directory
-      - name: Copy WAR to Tomcat webapps
-        run: |
-          ssh -i ~/.ssh/id_rsa ec2-user@${{ secrets.SSH_HOST }} 'sudo cp /home/ec2-user/*.war /opt/tomcat/webapps/'
+          mvn deploy:deploy-file \
+            -D
