@@ -31,6 +31,8 @@ jobs:
       # Build the Java project using Maven
       - name: Build with Maven
         run: mvn clean package
+      - name: List target directory
+        run: ls -l target
 
       # Run SonarQube scan
       - name: Run SonarQube Scan
