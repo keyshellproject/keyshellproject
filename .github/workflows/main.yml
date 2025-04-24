@@ -13,6 +13,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Get the current version tag
+        id: version
+        run: |
+          VERSION=$(git describe --tags --abbrev=0)
+          VERSION_NUMBER=$(echo $VERSION | sed 's/v//') # Remove "v" if you are using v1, v2, etc.
+          echo "Current version: $VERSION_NUMBER"
+          echo "::set-output name=version::$VERSION_NUMBER"
+
       - name: Set up JDK 11
         uses: actions/setup-java@v1
         with:
@@ -61,12 +69,11 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
-                # Debug Nexus credentials (remove after testing!)
+      # Debug Nexus credentials (remove after testing!)
       - name: Debug Nexus credentials (TEMP)
         run: |
           echo "Username: ${{ secrets.NEXUS_USERNAME }}"
           echo "Password: ${{ secrets.NEXUS_PASSWORD }}"
-
 
       - name: Deploy to Nexus
         env:
@@ -77,10 +84,10 @@ jobs:
           mvn deploy:deploy-file \
             -Durl=${{ secrets.NEXUS_URL }} \
             -DrepositoryId=nexus-releases \
-            -Dfile=target/Stateful-Tracker-1.0.0-SNAPSHOT.war \
+            -Dfile=target/Stateful-Tracker-${{ steps.version.outputs.version }}.war \
             -DgroupId=com.microsoft.webapp.samples \
             -DartifactId=Stateful-Tracker \
-            -Dversion=${{ github.sha }} \
+            -Dversion=${{ steps.version.outputs.version }} \
             -Dpackaging=war \
             -DgeneratePom=true \
             -Dusername=${{ secrets.NEXUS_USERNAME }} \
