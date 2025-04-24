@@ -81,4 +81,23 @@ jobs:
           NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
         run: |
           mvn deploy:deploy-file \
-            -D
+            -Durl=${{ secrets.NEXUS_URL }} \
+            -DrepositoryId=nexus-releases \
+            -Dfile=target/Stateful-Tracker-1.0.0-SNAPSHOT.war \
+            -DgroupId=com.microsoft.webapp.samples \
+            -DartifactId=Stateful-Tracker \
+            -Dversion=${{ github.sha }} \
+            -Dpackaging=war \
+            -DgeneratePom=true \
+            -Dusername=${{ secrets.NEXUS_USERNAME }} \
+            -Dpassword=${{ secrets.NEXUS_PASSWORD }}
+
+      # Deploy WAR to EC2 via SCP
+      - name: Deploy WAR via SCP
+        run: |
+          scp -i ~/.ssh/id_rsa target/*.war ec2-user@${{ secrets.SSH_HOST }}:/home/ec2-user/
+
+      # Copy WAR to Tomcat webapps directory
+      - name: Copy WAR to Tomcat webapps
+        run: |
+          ssh -i ~/.ssh/id_rsa ec2-user@${{ secrets.SSH_HOST }} 'sudo cp /home/ec2-user/*.war /opt/tomcat/webapps/'
