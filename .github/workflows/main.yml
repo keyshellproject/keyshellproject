@@ -78,7 +78,7 @@ jobs:
           mvn deploy:deploy-file \
             -Durl=${{ secrets.NEXUS_URL }} \
             -DrepositoryId=nexus-releases \
-            -Dfile=target/*.war \
+            -Dfile=target/Stateful-Tracker-1.0.0-SNAPSHOT.war
             -DgroupId=com.microsoft.webapp.samples \
             -DartifactId=Stateful-Tracker \
             -Dversion=${{ github.sha }} \
