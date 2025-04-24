@@ -75,7 +75,7 @@ jobs:
           NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
           NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
         run: |
-         mvn deploy:deploy-file \
+          mvn deploy:deploy-file \
           -Durl=http://<nexus-url>/repository/maven-releases/ \
           -DrepositoryId=nexus-releases \
           -Dfile=target/Stateful-Tracker-1.0.0.war \
